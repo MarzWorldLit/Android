@@ -37,7 +37,7 @@ import com.duckduckgo.app.privacymonitor.db.NetworkLeaderboardDao
 import com.duckduckgo.app.privacymonitor.db.NetworkLeaderboardEntry
 import com.duckduckgo.app.privacymonitor.db.NetworkPercent
 import com.duckduckgo.app.privacymonitor.model.PrivacyGrade
-import com.duckduckgo.app.privacymonitor.store.PrivacyMonitorRepository
+import com.duckduckgo.app.tabs.TabDataRepository
 import com.duckduckgo.app.privacymonitor.store.TermsOfServiceStore
 import com.duckduckgo.app.settings.db.AppConfigurationDao
 import com.duckduckgo.app.settings.db.AppConfigurationEntity
@@ -120,7 +120,7 @@ class BrowserViewModelTest {
                 duckDuckGoUrlDetector = DuckDuckGoUrlDetector(),
                 termsOfServiceStore = mockTermsOfServiceStore,
                 trackerNetworks = TrackerNetworks(),
-                privacyMonitorRepository = PrivacyMonitorRepository(),
+                tabRepository = TabDataRepository(),
                 networkLeaderboardDao = testNetworkLeaderboardDao,
                 autoCompleteApi = mockAutoCompleteApi,
                 appSettingsPreferencesStore = mockSettingsStore,
@@ -130,6 +130,7 @@ class BrowserViewModelTest {
 
         testee.url.observeForever(mockQueryObserver)
         testee.command.observeForever(mockCommandObserver)
+        testee.setTabId("xyz")
 
         whenever(mockOmnibarConverter.convertQueryToUri(any())).thenReturn(Uri.parse("duckduckgo.com"))
 

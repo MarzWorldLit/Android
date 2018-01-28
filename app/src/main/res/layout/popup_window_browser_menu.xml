@@ -60,7 +60,7 @@
     <FrameLayout
         android:layout_width="match_parent"
         android:layout_height="1dp"
-        android:background="@color/white_two"
+        android:background="@color/whiteTwo"
         app:layout_constraintBottom_toBottomOf="@+id/header" />
 
     <LinearLayout

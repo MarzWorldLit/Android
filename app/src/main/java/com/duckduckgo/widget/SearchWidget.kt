@@ -47,7 +47,7 @@ class SearchWidget : AppWidgetProvider() {
         }
 
         private fun buildPendingIntent(context: Context) : PendingIntent {
-            val intent = HomeActivity.launchSkipHome(context)
+            val intent = HomeActivity.intentSkipHome(context)
             return PendingIntent.getActivity(context, 0, intent, PendingIntent.FLAG_UPDATE_CURRENT)
         }
     }

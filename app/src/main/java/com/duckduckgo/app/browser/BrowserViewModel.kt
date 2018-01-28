@@ -35,13 +35,14 @@ import com.duckduckgo.app.browser.BrowserViewModel.Command.Navigate
 import com.duckduckgo.app.browser.LongPressHandler.RequiredAction
 import com.duckduckgo.app.browser.omnibar.OmnibarEntryConverter
 import com.duckduckgo.app.global.SingleLiveEvent
+import com.duckduckgo.app.privacymonitor.PrivacyMonitor
 import com.duckduckgo.app.privacymonitor.SiteMonitor
 import com.duckduckgo.app.privacymonitor.db.NetworkLeaderboardDao
 import com.duckduckgo.app.privacymonitor.db.NetworkLeaderboardEntry
 import com.duckduckgo.app.privacymonitor.model.PrivacyGrade
 import com.duckduckgo.app.privacymonitor.model.TermsOfService
 import com.duckduckgo.app.privacymonitor.model.improvedGrade
-import com.duckduckgo.app.privacymonitor.store.PrivacyMonitorRepository
+import com.duckduckgo.app.tabs.TabDataRepository
 import com.duckduckgo.app.privacymonitor.store.TermsOfServiceStore
 import com.duckduckgo.app.privacymonitor.ui.PrivacyDashboardActivity.Companion.RELOAD_RESULT_CODE
 import com.duckduckgo.app.settings.db.AppConfigurationDao
@@ -60,7 +61,7 @@ class BrowserViewModel(
         private val duckDuckGoUrlDetector: DuckDuckGoUrlDetector,
         private val termsOfServiceStore: TermsOfServiceStore,
         private val trackerNetworks: TrackerNetworks,
-        private val privacyMonitorRepository: PrivacyMonitorRepository,
+        private val tabRepository: TabDataRepository,
         private val networkLeaderboardDao: NetworkLeaderboardDao,
         private val bookmarksDao: BookmarksDao,
         private val autoCompleteApi: AutoCompleteApi,
@@ -97,12 +98,14 @@ class BrowserViewModel(
         class ShowFullScreen(val view: View) : Command()
         class DownloadImage(val url: String) : Command()
     }
+
     /* Observable data for Activity to subscribe to */
     val viewState: MutableLiveData<ViewState> = MutableLiveData()
 
     val privacyGrade: MutableLiveData<PrivacyGrade> = MutableLiveData()
     val url: SingleLiveEvent<String> = SingleLiveEvent()
     val command: SingleLiveEvent<Command> = SingleLiveEvent()
+
     @VisibleForTesting
     val appConfigurationObserver: Observer<AppConfigurationEntity> = Observer { appConfiguration ->
         appConfiguration?.let {
@@ -111,17 +114,16 @@ class BrowserViewModel(
         }
     }
 
+    private var appConfigurationDownloaded = false
     private val appConfigurationObservable = appConfigurationDao.appConfigurationStatus()
     private val autoCompletePublishSubject = PublishRelay.create<String>()
-
-    private var siteMonitor: SiteMonitor? = null
-    private var appConfigurationDownloaded = false
+    private lateinit var monitorLiveData: MutableLiveData<PrivacyMonitor>
+    private var monitor: SiteMonitor? = null
 
     init {
         command.value = Command.ShowKeyboard
         viewState.value = ViewState(canAddBookmarks = false)
         appConfigurationObservable.observeForever(appConfigurationObserver)
-
         configureAutoComplete()
     }
 
@@ -142,7 +144,6 @@ class BrowserViewModel(
         viewState.value = currentViewState().copy(autoCompleteSearchResults = AutoCompleteResult(result.query, results))
     }
 
-
     @VisibleForTesting
     public override fun onCleared() {
         super.onCleared()
@@ -152,6 +153,10 @@ class BrowserViewModel(
     fun registerWebViewListener(browserWebViewClient: BrowserWebViewClient, browserChromeClient: BrowserChromeClient) {
         browserWebViewClient.webViewClientListener = this
         browserChromeClient.webViewClientListener = this
+    }
+
+    fun setTabId(tabId: String) {
+        monitorLiveData = tabRepository.get(tabId)
     }
 
     fun onUserSubmittedQuery(input: String) {
@@ -194,13 +199,18 @@ class BrowserViewModel(
     override fun loadingStarted() {
         Timber.v("Loading started")
         viewState.value = currentViewState().copy(isLoading = true)
-        siteMonitor = null
+        monitor = null
         onSiteMonitorChanged()
     }
 
     override fun loadingFinished() {
         Timber.v("Loading finished")
         viewState.value = currentViewState().copy(isLoading = false)
+    }
+
+    override fun titleReceived(title: String) {
+        monitor?.title = title
+        onSiteMonitorChanged()
     }
 
     @AnyThread
@@ -238,20 +248,17 @@ class BrowserViewModel(
         viewState.value = newViewState
 
         val terms = termsOfServiceStore.retrieveTerms(url) ?: TermsOfService()
-        siteMonitor = SiteMonitor(url, terms, trackerNetworks)
+        val memberNetwork = trackerNetworks.network(url)
+        monitor = SiteMonitor(url, terms, memberNetwork)
         onSiteMonitorChanged()
     }
 
     override fun trackerDetected(event: TrackingEvent) {
-        if (event.documentUrl == siteMonitor?.url) {
-            updateSiteMonitor(event)
+        if (event.documentUrl == monitor?.url) {
+            monitor?.trackerDetected(event)
+            onSiteMonitorChanged()
         }
         updateNetworkLeaderboard(event)
-    }
-
-    private fun updateSiteMonitor(event: TrackingEvent) {
-        siteMonitor?.trackerDetected(event)
-        onSiteMonitorChanged()
     }
 
     private fun updateNetworkLeaderboard(event: TrackingEvent) {
@@ -261,15 +268,15 @@ class BrowserViewModel(
     }
 
     override fun pageHasHttpResources(page: String?) {
-        if (page == siteMonitor?.url) {
-            siteMonitor?.hasHttpResources = true
+        if (page == monitor?.url) {
+            monitor?.hasHttpResources = true
             onSiteMonitorChanged()
         }
     }
 
     private fun onSiteMonitorChanged() {
-        privacyGrade.postValue(siteMonitor?.improvedGrade)
-        privacyMonitorRepository.privacyMonitor.postValue(siteMonitor)
+        privacyGrade.postValue(monitor?.improvedGrade)
+        monitorLiveData.postValue(monitor)
     }
 
     private fun currentViewState(): ViewState = viewState.value!!

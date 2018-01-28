@@ -18,6 +18,7 @@ package com.duckduckgo.app.di
 
 import com.duckduckgo.app.bookmarks.ui.BookmarksActivity
 import com.duckduckgo.app.browser.BrowserActivity
+import com.duckduckgo.app.browser.BrowserTabFragment
 import com.duckduckgo.app.home.HomeActivity
 import com.duckduckgo.app.job.AppConfigurationJobService
 import com.duckduckgo.app.launch.LaunchActivity
@@ -27,6 +28,7 @@ import com.duckduckgo.app.privacymonitor.ui.PrivacyPracticesActivity
 import com.duckduckgo.app.privacymonitor.ui.ScorecardActivity
 import com.duckduckgo.app.privacymonitor.ui.TrackerNetworksActivity
 import com.duckduckgo.app.settings.SettingsActivity
+import com.duckduckgo.app.tabs.TabSwitcherActivity
 import dagger.Module
 import dagger.android.ContributesAndroidInjector
 
@@ -54,6 +56,10 @@ abstract class AndroidBindingModule {
 
     @ActivityScoped
     @ContributesAndroidInjector
+    abstract fun tabsActivity(): TabSwitcherActivity
+
+    @ActivityScoped
+    @ContributesAndroidInjector
     abstract fun privacyDashboardActivity(): PrivacyDashboardActivity
 
     @ActivityScoped
@@ -75,6 +81,11 @@ abstract class AndroidBindingModule {
     @ActivityScoped
     @ContributesAndroidInjector
     abstract fun bookmarksActivity(): BookmarksActivity
+
+    /* Fragments */
+
+    @ContributesAndroidInjector
+    abstract fun browserTabFragment(): BrowserTabFragment
 
     /* Services */
 

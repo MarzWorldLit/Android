@@ -39,7 +39,6 @@ class BookmarkAddEditDialogFragment : DialogFragment() {
         fun userWantsToEditBookmark(id: Int, title: String, url: String)
     }
 
-
     override fun onCreateDialog(savedInstanceState: Bundle?): Dialog {
 
         val rootView = View.inflate(activity, R.layout.add_or_edit_bookmark, null)

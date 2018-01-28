@@ -18,6 +18,8 @@ package com.duckduckgo.app.home
 
 import android.content.Context
 import android.content.Intent
+import android.content.Intent.ACTION_ASSIST
+import android.content.Intent.EXTRA_TEXT
 import android.os.Bundle
 import android.support.v4.app.ActivityOptionsCompat
 import android.view.Menu
@@ -31,12 +33,14 @@ import com.duckduckgo.app.global.DuckDuckGoActivity
 import com.duckduckgo.app.global.intentText
 import com.duckduckgo.app.global.view.FireDialog
 import com.duckduckgo.app.settings.SettingsActivity
+import com.duckduckgo.app.tabs.TabSwitcherActivity
 import kotlinx.android.synthetic.main.activity_home.*
 import kotlinx.android.synthetic.main.content_home.*
 import kotlinx.android.synthetic.main.popup_window_browser_menu.view.*
 import org.jetbrains.anko.toast
 import javax.inject.Inject
 import javax.inject.Provider
+
 
 class HomeActivity : DuckDuckGoActivity() {
 
@@ -67,14 +71,10 @@ class HomeActivity : DuckDuckGoActivity() {
         popupMenu = BrowserPopupMenu(layoutInflater)
         val view = popupMenu.contentView
         popupMenu.apply {
+            enableMenuOption(view.tabsPopupMenuItem) { launchTabs() }
             enableMenuOption(view.bookmarksPopupMenuItem) { launchBookmarks() }
             enableMenuOption(view.settingsPopupMenuItem) { launchSettings() }
         }
-    }
-
-    override fun onNewIntent(intent: Intent?) {
-        super.onNewIntent(intent)
-        consumeIntentAction(intent)
     }
 
     private fun consumeIntentAction(intent: Intent?) {
@@ -90,13 +90,17 @@ class HomeActivity : DuckDuckGoActivity() {
         startActivity(BrowserActivity.intent(this, query))
     }
 
-    private fun shouldSkipHomeActivity(intent: Intent) : Boolean {
-        return intent.hasExtra(KEY_SKIP_HOME) || intent.action == Intent.ACTION_ASSIST
+    private fun shouldSkipHomeActivity(intent: Intent): Boolean {
+        return intent.hasExtra(SKIP_HOME_EXTRA) || intent.action == ACTION_ASSIST
     }
 
     private fun showSearchActivity() {
         val intent = BrowserActivity.intent(this)
-        val options = ActivityOptionsCompat.makeSceneTransitionAnimation(this, searchInputBox, getString(R.string.transition_url_input))
+        val options = ActivityOptionsCompat.makeSceneTransitionAnimation(
+            this,
+            searchInputBox,
+            getString(R.string.transition_url_input)
+        )
         startActivity(intent, options.toBundle())
     }
 
@@ -130,11 +134,15 @@ class HomeActivity : DuckDuckGoActivity() {
         popupMenu.show(rootView, toolbar)
     }
 
-    fun launchBookmarks() {
+    private fun launchTabs() {
+        startActivity(TabSwitcherActivity.intent(this))
+    }
+
+    private fun launchBookmarks() {
         startActivity(BookmarksActivity.intent(this))
     }
 
-    fun launchSettings() {
+    private fun launchSettings() {
         startActivity(SettingsActivity.intent(this))
     }
 
@@ -145,20 +153,22 @@ class HomeActivity : DuckDuckGoActivity() {
 
     companion object {
 
+        const val SKIP_HOME_EXTRA: String = "SKIP_HOME_EXTRA"
+
         fun intent(context: Context, query: String? = null): Intent {
             val intent = Intent(context, HomeActivity::class.java)
             query?.let {
-                intent.putExtra(Intent.EXTRA_TEXT, query)
+                intent.putExtra(EXTRA_TEXT, query)
             }
             return intent
         }
 
-        fun launchSkipHome(context: Context) : Intent {
+        fun intentSkipHome(context: Context): Intent {
             val intent = intent(context)
-            intent.putExtra(KEY_SKIP_HOME, true)
+            intent.putExtra(SKIP_HOME_EXTRA, true)
             return intent
         }
-
-        const val KEY_SKIP_HOME: String = "KEY_SKIP_HOME"
     }
 }
+
+
