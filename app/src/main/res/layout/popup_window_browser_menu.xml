@@ -72,6 +72,22 @@
         app:layout_constraintTop_toBottomOf="@id/header">
 
         <TextView
+            android:id="@+id/tabsPopupMenuItem"
+            style="@style/BrowserTextMenuItem"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:enabled="false"
+            android:text="@string/tabsMenuItem" />
+
+        <TextView
+            android:id="@+id/newTabPopupMenuItem"
+            style="@style/BrowserTextMenuItem"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:enabled="false"
+            android:text="@string/newTabMenuItem" />
+
+        <TextView
             android:id="@+id/bookmarksPopupMenuItem"
             style="@style/BrowserTextMenuItem"
             android:layout_width="match_parent"
